@@ -58,11 +58,12 @@ class HiggsfieldRequest(BaseModel):
 
 class ElevenLabsTTSRequest(BaseModel):
     text: str
-    voice_id: Optional[str] = "pNInz6obpgDQGcFmaJgB"
-    voice_name: Optional[str] = "Adam"
+    voice_id: Optional[str] = "ca_enric"
+    voice_name: Optional[str] = "Enric (Català)"
     stability: float = 0.5
     similarity_boost: float = 0.75
     style_exaggeration: float = 0.3
+    provider: Optional[str] = "free_neural"
     api_key: Optional[str] = None
     hardware_profile: Optional[str] = "LITE"
 
@@ -119,6 +120,7 @@ def generate_tts(req: ElevenLabsTTSRequest):
         stability=req.stability,
         similarity_boost=req.similarity_boost,
         style_exaggeration=req.style_exaggeration,
+        provider=req.provider,
         api_key=req.api_key,
         hardware_profile=req.hardware_profile
     )

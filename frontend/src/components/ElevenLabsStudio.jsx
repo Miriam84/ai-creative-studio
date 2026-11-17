@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { Mic, Volume2, Upload, Sparkles, Play, Pause, RefreshCw, Download, Music, Sliders, CheckCircle2, UserCheck, AudioLines as WaveIcon } from 'lucide-react';
 
 const VOICES = [
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', tag: 'Dona • Calma & Narrativa', accent: 'Americà', desc: 'Ideal per documentals i veu en off' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', tag: 'Dona • Jove & Dinàmica', accent: 'Americà', desc: 'Veu expressiva per anuncis i xarxes' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', tag: 'Dona • Càlida & Suau', accent: 'Americà', desc: 'Molt expressiva amb to íntim' },
-  { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', tag: 'Home • Clar & Modular', accent: 'Multilingüe', desc: 'Perfecte per català, espanyol i anglès' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', tag: 'Home • Profund & Cinema', accent: 'Americà', desc: 'La veu més famosa d\'ElevenLabs per tràilers' },
+  { id: 'ca_enric', name: 'Enric', tag: 'Home • Natural & Fluid', accent: 'Català', desc: 'Veu neuronal en català perfecta per avatars i vídeos' },
+  { id: 'ca_joana', name: 'Joana', tag: 'Dona • Expressiva & Clara', accent: 'Català', desc: 'Veu femenina en català d\'estudi' },
+  { id: 'es_alvaro', name: 'Álvaro', tag: 'Home • Càlid & Dinàmic', accent: 'Espanyol', desc: 'Veu molt propera per xarxes i anuncis' },
+  { id: 'es_elvira', name: 'Elvira', tag: 'Dona • Professional', accent: 'Espanyol', desc: 'To informatiu i corporatiu' },
+  { id: 'en_adam', name: 'Adam', tag: 'Home • Profund & Cinema', accent: 'Anglès', desc: 'To profund estil tràiler de cinema' },
+  { id: 'en_rachel', name: 'Rachel', tag: 'Dona • Calma & Narrativa', accent: 'Anglès', desc: 'Ideal per a narracions i meditació' },
 ];
 
 export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
   const [subTab, setSubTab] = useState('tts'); // tts, clone, sfx
-  const [selectedVoice, setSelectedVoice] = useState(VOICES[4]); // Adam
+  const [voiceProvider, setVoiceProvider] = useState('free_neural'); // free_neural (no cost) or elevenlabs
+  const [selectedVoice, setSelectedVoice] = useState(VOICES[0]); // Enric Català
   const [scriptText, setScriptText] = useState(
-    'En un món on la imaginació no té límits, la tecnologia i la creativitat es fusionen en una sola veu.'
+    'Hola! Sóc el teu avatar creatiu generat en local. Puc parlar en català amb veu 100% gratuïta sense haver de pagar cap subscripció!'
   );
   const [stability, setStability] = useState(50);
   const [similarity, setSimilarity] = useState(75);
@@ -28,11 +30,18 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
   const [sfxPrompt, setSfxPrompt] = useState('Epic cinematic deep bass drop with wind swoosh and distant thunder');
   const [sfxDuration, setSfxDuration] = useState(4);
 
-  // Playback & Generation State
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAudio, setGeneratedAudio] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
+  const audioRef = React.useRef(null);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
 
   const handleGenerateTTS = async () => {
     setIsGenerating(true);
@@ -49,14 +58,21 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
           stability: stability / 100,
           similarity_boost: similarity / 100,
           style_exaggeration: styleExaggeration / 100,
+          provider: voiceProvider,
           hardware_profile: hardwareInfo?.profile || 'LITE'
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedAudio(data.audio_url || 'https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3');
-        setStatusMessage('Àudio sintetitzat correctament!');
+        const url = data.audio_url || 'http://localhost:8000/static/outputs/test_catalan.mp3';
+        setGeneratedAudio(url);
+        setStatusMessage(data.source || 'Àudio sintetitzat correctament!');
+        // Automatically play the generated speech
+        const audio = new Audio(url);
+        audio.play().catch(() => {});
+        setIsPlaying(true);
+        audio.onended = () => setIsPlaying(false);
       } else {
         simulateAudio();
       }
@@ -163,7 +179,40 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
                   <Volume2 className="w-4 h-4 text-emerald-400" />
                   Biblioteca de Veus
                 </span>
-                <span className="text-[11px] font-mono text-emerald-400">ElevenLabs Multilingual v2</span>
+                <span className="text-[11px] font-mono text-emerald-400">
+                  {voiceProvider === 'free_neural' ? '🟢 Motor Gratuït (Edge-TTS)' : '⚡ ElevenLabs Cloud'}
+                </span>
+              </div>
+
+              {/* Provider Selector: Free vs ElevenLabs */}
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                  Proveïdor de Veu:
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setVoiceProvider('free_neural')}
+                    className={`py-2 px-3 rounded-xl border text-left flex flex-col gap-0.5 transition ${
+                      voiceProvider === 'free_neural'
+                        ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-md'
+                        : 'bg-studio-bg border-studio-cardBorder text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-emerald-300">100% Gratuït (Zero cost)</span>
+                    <span className="text-[10px] text-slate-400">Microsoft Neural • Català/Esp/Eng</span>
+                  </button>
+                  <button
+                    onClick={() => setVoiceProvider('elevenlabs')}
+                    className={`py-2 px-3 rounded-xl border text-left flex flex-col gap-0.5 transition ${
+                      voiceProvider === 'elevenlabs'
+                        ? 'bg-purple-600/20 border-purple-500 text-white shadow-md'
+                        : 'bg-studio-bg border-studio-cardBorder text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-purple-300">ElevenLabs (Oficial)</span>
+                    <span className="text-[10px] text-slate-400">Requereix clau API</span>
+                  </button>
+                </div>
               </div>
 
               {/* Voices Selector */}
@@ -420,9 +469,16 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
                   ))}
                 </div>
 
+                <audio
+                  ref={audioRef}
+                  src={generatedAudio || 'http://localhost:8000/static/outputs/test_catalan.mp3'}
+                  onEnded={() => setIsPlaying(false)}
+                  className="hidden"
+                />
+
                 <div className="flex items-center gap-4 mt-2">
                   <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={togglePlay}
                     className="w-12 h-12 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black flex items-center justify-center transition shadow-lg shadow-emerald-500/25"
                   >
                     {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
