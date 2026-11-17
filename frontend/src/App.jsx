@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import AvatarStudio from './components/AvatarStudio';
 import MagnificStudio from './components/MagnificStudio';
 import HiggsfieldStudio from './components/HiggsfieldStudio';
 import ElevenLabsStudio from './components/ElevenLabsStudio';
@@ -7,7 +8,7 @@ import WorkflowStudio from './components/WorkflowStudio';
 import HardwareSettings from './components/HardwareSettings';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('magnific');
+  const [activeTab, setActiveTab] = useState('avatar');
   const [magnificOutputImage, setMagnificOutputImage] = useState(null);
   const [higgsfieldOutputVideo, setHiggsfieldOutputVideo] = useState(null);
   const [hardwareInfo, setHardwareInfo] = useState({
@@ -50,6 +51,11 @@ export default function App() {
       />
 
       <main className="flex-1 pb-12">
+        {activeTab === 'avatar' && (
+          <AvatarStudio
+            hardwareInfo={hardwareInfo}
+          />
+        )}
         {activeTab === 'magnific' && (
           <MagnificStudio
             onSendToHiggsfield={handleSendToHiggsfield}

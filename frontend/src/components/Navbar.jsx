@@ -1,8 +1,9 @@
 import React from 'react';
-import { Sparkles, Video, Mic, Workflow, Cpu, Layers } from 'lucide-react';
+import { Sparkles, Video, Mic, Workflow, Cpu, Layers, Smartphone } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, hardwareInfo }) {
   const tabs = [
+    { id: 'avatar', label: 'Avatar Studio', icon: Smartphone, color: 'text-cyan-400', badge: 'HeyGen Free' },
     { id: 'magnific', label: 'Magnific Studio', icon: Sparkles, color: 'text-pink-400', badge: 'Upscale & Detail' },
     { id: 'higgsfield', label: 'Higgsfield Studio', icon: Video, color: 'text-purple-400', badge: 'Video & Camera' },
     { id: 'elevenlabs', label: 'ElevenLabs Studio', icon: Mic, color: 'text-emerald-400', badge: 'Voice & SFX' },
