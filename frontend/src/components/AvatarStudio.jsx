@@ -6,6 +6,7 @@ export default function AvatarStudio({ hardwareInfo }) {
   const [avatarImage, setAvatarImage] = useState(
     'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80'
   );
+  const [avatarImageFile, setAvatarImageFile] = useState(null);
 
   // Audio / Voice source
   const [audioMode, setAudioMode] = useState('upload'); // 'upload' (la teva veu pròpia), 'record' (gravar), 'clone' (clonació)
@@ -44,6 +45,7 @@ export default function AvatarStudio({ hardwareInfo }) {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setAvatarImageFile(file);
       setAvatarImage(URL.createObjectURL(file));
     }
   };
@@ -95,23 +97,52 @@ export default function AvatarStudio({ hardwareInfo }) {
   const handleGenerateAvatarVideo = async () => {
     setIsGenerating(true);
     setProgress(15);
-    setStatusMessage('Carregant LivePortrait a la teva GPU (utilitzant ~2.5 GB VRAM)...');
+    setStatusMessage('Carregant imatge i àudio al servidor...');
 
-    setTimeout(() => {
-      setProgress(40);
-      setStatusMessage('Analitzant fonemes i punts facials del teu personatge...');
-      setTimeout(() => {
-        setProgress(75);
-        setStatusMessage('Generant sincronització labial exacta (Lip-Sync)...');
-        setTimeout(() => {
-          setProgress(100);
-          setStatusMessage('Vídeo de l\'avatar completat per a TikTok/YouTube!');
-          setIsGenerating(false);
-          // Video sample with talking head
-          setGeneratedVideo('https://assets.mixkit.co/videos/preview/mixkit-portrait-of-a-woman-in-a-futuristic-cyberpunk-environment-42475-large.mp4');
-        }, 1200);
-      }, 1200);
-    }, 1200);
+    try {
+      const formData = new FormData();
+
+      // Send image
+      if (avatarImageFile) {
+        formData.append('image', avatarImageFile);
+      } else {
+        const imgRes = await fetch(avatarImage);
+        const imgBlob = await imgRes.blob();
+        formData.append('image', imgBlob, 'avatar.png');
+      }
+
+      // Send audio
+      if (uploadedAudioFile) {
+        formData.append('audio', uploadedAudioFile);
+      }
+
+      formData.append('head_motion', headMotion);
+      formData.append('eye_blink', eyeBlink);
+      formData.append('add_subtitles', addSubtitles);
+      formData.append('subtitle_text', "SABIES D'ON VE AQUESTA FRASE?");
+
+      setProgress(45);
+      setStatusMessage('Generant sincronització labial i animació de rostre (LivePortrait)...');
+
+      const response = await fetch('http://localhost:8000/api/avatar/render', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProgress(100);
+        setStatusMessage('Vídeo de l\'avatar renderitzat amb èxit!');
+        setGeneratedVideo(data.video_url);
+      } else {
+        setStatusMessage('Error renderitzant el vídeo al servidor.');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusMessage('Error connectant amb el servidor.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (

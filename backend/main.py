@@ -9,6 +9,7 @@ from hardware import detect_hardware
 from services.magnific_service import MagnificService
 from services.higgsfield_service import HiggsfieldService
 from services.elevenlabs_service import ElevenLabsService
+from services.avatar_service import AvatarService
 
 app = FastAPI(
     title="OmniStudio API",
@@ -131,6 +132,27 @@ def generate_sfx(req: ElevenLabsSFXRequest):
         prompt=req.prompt,
         duration_seconds=req.duration,
         api_key=req.api_key
+    )
+
+@app.post("/api/avatar/render")
+async def render_avatar(
+    image: UploadFile = File(...),
+    audio: Optional[UploadFile] = File(None),
+    head_motion: int = Form(5),
+    eye_blink: int = Form(7),
+    add_subtitles: bool = Form(True),
+    subtitle_text: str = Form("SABIES D'ON VE AQUESTA FRASE?")
+):
+    image_bytes = await image.read()
+    audio_bytes = await audio.read() if audio else None
+    
+    return AvatarService.render_talking_avatar(
+        image_bytes=image_bytes,
+        audio_bytes=audio_bytes,
+        head_motion=head_motion,
+        eye_blink=eye_blink,
+        add_subtitles=add_subtitles,
+        subtitle_text=subtitle_text
     )
 
 if __name__ == "__main__":
