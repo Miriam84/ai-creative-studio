@@ -177,59 +177,77 @@ class AvatarService:
         
         proc = subprocess.Popen(writer_cmd, stdin=subprocess.PIPE)
 
-        blink_period = 80 # blink every ~3.3 seconds
+        # Coordinate grid for seamless continuous mesh deformation (No square cutouts)
+        grid_y, grid_x = np.mgrid[0:target_h, 0:target_w].astype(np.float32)
+
+        cx = fx + fw // 2
+        cy_jaw = int(fy + 0.85 * fh)
+        cy_mouth = int(fy + 0.74 * fh)
+
+        # Eye centers for natural blinking displacement
+        cx_le = int(fx + 0.32 * fw)
+        cx_re = int(fx + 0.68 * fw)
+        cy_eye = int(fy + 0.38 * fh)
+
+        # Smooth Gaussian weight fields
+        rx_jaw = fw * 0.44
+        ry_jaw = fh * 0.22
+        dist_sq_jaw = ((grid_x - cx) / rx_jaw)**2 + ((grid_y - cy_jaw) / ry_jaw)**2
+        weight_jaw = np.exp(-dist_sq_jaw * 1.8)
+        # Protect mustache / upper lip anchor
+        weight_jaw[grid_y < cy_mouth - int(fh * 0.02)] = 0
+
+        # Mouth opening depth under mustache
+        rx_m = fw * 0.22
+        ry_m = fh * 0.05
+        dist_sq_m = ((grid_x - cx) / rx_m)**2 + ((grid_y - cy_mouth) / ry_m)**2
+        weight_m = np.exp(-dist_sq_m * 2.5)
+        weight_m[dist_sq_m > 1.3] = 0
+
+        # Eye blink weight
+        rx_eye = fw * 0.14
+        ry_eye = fh * 0.08
+        dist_sq_le = ((grid_x - cx_le) / rx_eye)**2 + ((grid_y - cy_eye) / ry_eye)**2
+        dist_sq_re = ((grid_x - cx_re) / rx_eye)**2 + ((grid_y - cy_eye) / ry_eye)**2
+        weight_eye = np.maximum(np.exp(-dist_sq_le * 2.5), np.exp(-dist_sq_re * 2.5))
+        weight_eye[weight_eye < 0.05] = 0
+
+        blink_period = 72 # blink every ~3 seconds
         
         for frame_idx in range(total_frames):
             val = envelope[frame_idx] # Speech amplitude (0.0 to 1.0)
             t = frame_idx / fps
 
-            # Work on a copy of base image
-            frame = base_cv.copy()
+            # A. ORGANIC LIP & JAW DEFORMATION (Continuous displacement, zero seams)
+            jaw_drop = val * (fh * 0.075)
+            cur_map_y = grid_y - (jaw_drop * weight_jaw).astype(np.float32)
+            cur_map_x = grid_x.copy()
 
-            # A. REAL LIP-SYNC (Mouth opens and closes proportionally to speech amplitude)
-            if val > 0.05:
-                # Vertical jaw displacement
-                jaw_drop = int(val * (fh * 0.09)) # Open up to 9% of face height
-                mouth_crop = base_cv[my1:my2, mx1:mx2].copy()
-                
-                # Stretch mouth region downwards
-                mw = mx2 - mx1
-                mh = my2 - my1
-                if mw > 0 and mh > 0:
-                    stretched = cv2.resize(mouth_crop, (mw, mh + jaw_drop), interpolation=cv2.INTER_LINEAR)
-                    
-                    # Inner mouth cavity (dark opening between lips)
-                    cavity_h = int(jaw_drop * 0.75)
-                    if cavity_h > 2:
-                        cav_y1 = int(mh * 0.45)
-                        cav_y2 = cav_y1 + cavity_h
-                        cav_x1 = int(mw * 0.25)
-                        cav_x2 = int(mw * 0.75)
-                        # Draw soft dark mouth cavity
-                        cv2.ellipse(stretched, ((cav_x1 + cav_x2)//2, (cav_y1 + cav_y2)//2),
-                                    ((cav_x2 - cav_x1)//2, cavity_h//2), 0, 0, 360, (20, 20, 25), -1)
-
-                    # Seamless blend back into face
-                    end_y = min(target_h, my1 + mh + jaw_drop)
-                    insert_h = end_y - my1
-                    if insert_h <= stretched.shape[0]:
-                        frame[my1:end_y, mx1:mx2] = stretched[:insert_h, :]
-
-            # B. BLINKING (Eyes blink every ~3.5 seconds)
+            # B. NATURAL EYELID BLINKING
             blink_phase = frame_idx % blink_period
-            if 0 <= blink_phase <= 3:
-                # Close eyes briefly
-                eye_crop = base_cv[ey1:ey2, mx1:mx2]
-                if eye_crop.shape[0] > 0 and eye_crop.shape[1] > 0:
-                    shrunk = cv2.resize(eye_crop, (eye_crop.shape[1], int(eye_crop.shape[0] * 0.25)))
-                    frame[ey1:ey1 + shrunk.shape[0], mx1:mx2] = shrunk
+            if 0 <= blink_phase <= 2:
+                blink_amt = 9.0 * (1.0 if blink_phase == 1 else 0.5)
+                cur_map_y = cur_map_y - (blink_amt * weight_eye).astype(np.float32)
 
-            # C. ORGANIC HEAD MOVEMENT (Sway & subtle nodding synced with speech cadence)
-            sway_x = int(head_motion * 1.5 * np.sin(2 * np.pi * t * 0.35))
-            head_nod = int((val * 4.0) + (head_motion * 0.8 * np.cos(2 * np.pi * t * 0.5)))
+            # Continuous seamless remap across the whole face
+            frame = cv2.remap(base_cv, cur_map_x, cur_map_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+            # Natural oral depth under mustache (subtle shading, preserves real skin & hair texture)
+            if val > 0.08:
+                shadow = 1.0 - (val * 0.55 * weight_m)
+                shadow = np.clip(shadow, 0.35, 1.0)
+                frame = (frame.astype(np.float32) * np.expand_dims(shadow, -1)).astype(np.uint8)
+
+            # C. ORGANIC HEAD MOVEMENT (Micro-rotation, sway, and speech cadence nodding)
+            sway_x = head_motion * 1.2 * np.sin(2 * np.pi * t * 0.35)
+            nod_y = (val * 3.5) + (head_motion * 0.8 * np.cos(2 * np.pi * t * 0.45))
+            rot_deg = 0.5 * np.sin(2 * np.pi * t * 0.25)
             
-            M = np.float32([[1, 0, sway_x], [0, 1, head_nod]])
-            frame = cv2.warpAffine(frame, M, (target_w, target_h), borderMode=cv2.BORDER_REFLECT)
+            center_head = (float(target_w / 2), float(fy + fh / 2))
+            rot_mat = cv2.getRotationMatrix2D(center_head, rot_deg, 1.0)
+            rot_mat[0, 2] += sway_x
+            rot_mat[1, 2] += nod_y
+            frame = cv2.warpAffine(frame, rot_mat, (target_w, target_h), borderMode=cv2.BORDER_REFLECT)
 
             # D. SUBTITLES (TikTok Style Yellow Bar)
             if add_subtitles:
