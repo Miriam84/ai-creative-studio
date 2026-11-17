@@ -272,7 +272,7 @@ class AvatarService:
 
         return {
             "status": "success",
-            "video_url": f"http://localhost:8000/static/outputs/avatar_video_{timestamp}.mp4",
+            "video_url": f"/static/outputs/avatar_video_{timestamp}.mp4",
             "filename": f"avatar_video_{timestamp}.mp4",
             "duration": round(duration, 2),
             "resolution": "720x1280 (9:16)"

@@ -45,7 +45,7 @@ export default function MagnificStudio({ onSendToHiggsfield, hardwareInfo }) {
 
     try {
       // Call local backend API
-      const response = await fetch('http://localhost:8000/api/magnific/enhance', {
+      const response = await fetch('/api/magnific/enhance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

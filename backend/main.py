@@ -201,42 +201,69 @@ async def render_avatar(
     add_subtitles: bool = Form(True),
     subtitle_text: Optional[str] = Form(None)
 ):
-    # 1. Get image bytes
+    # 1. Get image bytes safely without network self-deadlock
+    image_bytes = None
     if image:
         image_bytes = await image.read()
     elif image_url:
-        import urllib.request
-        image_bytes = urllib.request.urlopen(image_url).read()
-    else:
-        # Default avatar
-        sample_path = os.path.join(OUTPUTS_DIR, "avatar_sample.png")
-        if os.path.exists(sample_path):
-            with open(sample_path, "rb") as f:
+        if "static/" in image_url:
+            rel = image_url.split("static/")[-1].replace("/", os.sep)
+            local_path = os.path.join(STATIC_DIR, rel)
+            if os.path.exists(local_path):
+                with open(local_path, "rb") as f:
+                    image_bytes = f.read()
+            else:
+                fallback = os.path.join(OUTPUTS_DIR, "lhome_del_bigot.jpg")
+                if os.path.exists(fallback):
+                    with open(fallback, "rb") as f:
+                        image_bytes = f.read()
+        elif image_url.startswith("http://") or image_url.startswith("https://"):
+            try:
+                import urllib.request
+                req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+                image_bytes = urllib.request.urlopen(req, timeout=8).read()
+            except Exception:
+                pass
+        elif os.path.exists(image_url):
+            with open(image_url, "rb") as f:
+                image_bytes = f.read()
+
+    if not image_bytes:
+        fallback = os.path.join(OUTPUTS_DIR, "lhome_del_bigot.jpg")
+        if os.path.exists(fallback):
+            with open(fallback, "rb") as f:
                 image_bytes = f.read()
         else:
-            raise HTTPException(status_code=400, detail="Imatge no proporcionada")
+            raise HTTPException(status_code=400, detail="Imatge no disponible")
 
     # 2. Get or generate audio
     audio_bytes = None
     if audio:
-        # OP Lev A: User uploaded or recorded exact audio -> DO NOT EDIT, USE AS-IS!
+        # OPTION A: User provided or recorded their own audio -> Use as-is, NO EDITING!
         audio_bytes = await audio.read()
     elif script_text:
-        # OPTION B: User provided script text -> Synthesize with character's voice!
+        # OPTION B: User provided text -> Synthesize speech with character voice
         tts_res = ElevenLabsService.generate_tts(
             text=script_text,
             voice_id=voice_id or "ca_enric",
             provider="free_neural"
         )
         audio_url = tts_res.get("audio_url", "")
-        if audio_url.startswith("http://localhost:8000/static/outputs/"):
-            audio_filename = audio_url.split("/")[-1]
-            local_audio_path = os.path.join(OUTPUTS_DIR, audio_filename)
+        if "static/outputs/" in audio_url:
+            filename = audio_url.split("static/outputs/")[-1]
+            local_audio_path = os.path.join(OUTPUTS_DIR, filename)
             if os.path.exists(local_audio_path):
                 with open(local_audio_path, "rb") as f:
                     audio_bytes = f.read()
+    
+    # If still no audio, use the character's saved default voice sample
+    if not audio_bytes:
+        default_sample = os.path.join(OUTPUTS_DIR, "lhome_del_bigot_veu.mp3")
+        if os.path.exists(default_sample):
+            with open(default_sample, "rb") as f:
+                audio_bytes = f.read()
 
-    sub_text = subtitle_text if subtitle_text else (script_text[:40] if script_text else "SABIES D'ON VE AQUESTA FRASE?")
+    sub_text = subtitle_text if subtitle_text else (script_text[:40] if script_text else "L'HOME DEL BIGOT A TIKTOK")
     
     return AvatarService.render_talking_avatar(
         image_bytes=image_bytes,
@@ -249,4 +276,5 @@ async def render_avatar(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

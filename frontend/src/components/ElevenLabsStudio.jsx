@@ -48,7 +48,7 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
     setStatusMessage('Sintetitzant veu d\'alta fidelitat...');
 
     try {
-      const response = await fetch('http://localhost:8000/api/elevenlabs/tts', {
+      const response = await fetch('/api/elevenlabs/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,7 +65,7 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
 
       if (response.ok) {
         const data = await response.json();
-        const url = data.audio_url || 'http://localhost:8000/static/outputs/test_catalan.mp3';
+        const url = data.audio_url || '/static/outputs/test_catalan.mp3';
         setGeneratedAudio(url);
         setStatusMessage(data.source || 'Àudio sintetitzat correctament!');
         // Automatically play the generated speech
@@ -471,7 +471,7 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
 
                 <audio
                   ref={audioRef}
-                  src={generatedAudio || 'http://localhost:8000/static/outputs/test_catalan.mp3'}
+                  src={generatedAudio || '/static/outputs/test_catalan.mp3'}
                   onEnded={() => setIsPlaying(false)}
                   className="hidden"
                 />

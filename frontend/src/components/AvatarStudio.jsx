@@ -63,7 +63,7 @@ export default function AvatarStudio({ hardwareInfo }) {
 
   // Fetch saved characters on mount
   useEffect(() => {
-    fetch('http://localhost:8000/api/characters')
+    fetch('/api/characters')
       .then((res) => res.json())
       .then((data) => {
         if (data && data.length > 0) {
@@ -77,10 +77,10 @@ export default function AvatarStudio({ hardwareInfo }) {
           id: 'char_lhome_del_bigot',
           name: "L'home del bigot (Rai)",
           description: "Personatge savi i carismàtic amb ulleres i bigoti que explica curiositats, dites i refranys populars a TikTok i YouTube.",
-          avatar_image: 'http://localhost:8000/static/outputs/lhome_del_bigot.jpg',
+          avatar_image: '/static/outputs/lhome_del_bigot.jpg',
           voice_name: "Veu de l'home del bigot (Mostra real)",
           voice_id: 'ca_enric',
-          audio_sample: 'http://localhost:8000/static/outputs/lhome_del_bigot_veu.mp3'
+          audio_sample: '/static/outputs/lhome_del_bigot_veu.mp3'
         };
         setCharacters([defaultChar]);
         setSelectedCharacter(defaultChar);
@@ -102,7 +102,7 @@ export default function AvatarStudio({ hardwareInfo }) {
     }
 
     try {
-      const res = await fetch('http://localhost:8000/api/characters', {
+      const res = await fetch('/api/characters', {
         method: 'POST',
         body: formData
       });
@@ -215,7 +215,7 @@ export default function AvatarStudio({ hardwareInfo }) {
       setRenderProgress(60);
       setRenderStatus('Generant moviment de boca (Lip-Sync real) i parpelleig...');
 
-      const response = await fetch('http://localhost:8000/api/avatar/render', {
+      const response = await fetch('/api/avatar/render', {
         method: 'POST',
         body: formData
       });

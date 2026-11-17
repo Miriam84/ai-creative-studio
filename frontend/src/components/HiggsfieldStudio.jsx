@@ -35,7 +35,7 @@ export default function HiggsfieldStudio({ inputImage, onSendToElevenLabs, hardw
     setProgress(10);
 
     try {
-      const response = await fetch('http://localhost:8000/api/higgsfield/generate', {
+      const response = await fetch('/api/higgsfield/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

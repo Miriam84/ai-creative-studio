@@ -38,8 +38,8 @@ call venv\Scripts\activate.bat
 pip install -r requirements.txt --quiet
 
 echo.
-echo [2/3] Iniciant el servidor Backend a http://localhost:8000...
-start "OmniStudio Backend" cmd /k "cd /d ""%~dp0backend"" && call venv\Scripts\activate.bat && python main.py"
+echo [2/3] Iniciant el servidor Backend a http://localhost:8001...
+start "OmniStudio Backend" cmd /k "cd /d ""%~dp0backend"" && call venv\Scripts\activate.bat && python -m uvicorn main:app --host 127.0.0.1 --port 8001 --reload"
 
 echo.
 echo [3/3] Iniciant el Frontend a http://localhost:5173...

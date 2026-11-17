@@ -20,7 +20,7 @@ export default function App() {
 
   // Fetch detected hardware on mount
   useEffect(() => {
-    fetch('http://localhost:8000/api/hardware')
+    fetch('/api/hardware')
       .then((res) => res.json())
       .then((data) => {
         if (data && data.gpu_name) {
