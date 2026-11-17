@@ -5,6 +5,7 @@ import subprocess
 import cv2
 import numpy as np
 import librosa
+import scipy.signal as signal
 import onnxruntime as ort
 import imageio_ffmpeg
 from PIL import Image
@@ -26,7 +27,6 @@ class Wav2LipService:
                 return None
             session_options = ort.SessionOptions()
             session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            # Prefer CPU provider for stable AVX2 speed without CUDA DLL version mismatch
             providers = ["CPUExecutionProvider"]
             cls._session = ort.InferenceSession(MODEL_PATH, sess_options=session_options, providers=providers)
         return cls._session
@@ -34,7 +34,8 @@ class Wav2LipService:
     @staticmethod
     def extract_mel_chunks(audio_path: str, fps: int = 25):
         """
-        Extracts 80-channel log-mel spectrogram chunks (16 frames each) matching video frames.
+        Extracts 80-channel log-mel spectrogram chunks (16 frames each) using
+        exact Wav2Lip mathematical normalization and pre-emphasis.
         """
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         temp_wav = os.path.join(OUTPUT_DIR, f"temp_w2l_{int(time.time() * 1000)}.wav")
@@ -55,21 +56,23 @@ class Wav2LipService:
         try:
             wav, sr = librosa.load(temp_wav, sr=16000)
             duration = len(wav) / sr
-            
-            # Mel-spectrogram computation matching Wav2Lip hyperparameters
-            mel = librosa.feature.melspectrogram(
-                y=wav,
-                sr=16000,
-                n_fft=800,
-                hop_length=200,
-                win_length=800,
-                n_mels=80,
-                fmin=55,
-                fmax=7600
-            )
-            mel_db = librosa.power_to_db(mel, ref=np.max)
-            # Normalize to [-4, 4]
-            mel_norm = np.clip((mel_db + 80.0) / 80.0, 0.0, 1.0) * 8.0 - 4.0
+
+            # 1. Pre-emphasis filter (k=0.97)
+            wav_pre = signal.lfilter([1, -0.97], [1], wav)
+
+            # 2. Short-Time Fourier Transform (STFT)
+            D = librosa.stft(y=wav_pre, n_fft=800, hop_length=200, win_length=800)
+
+            # 3. Mel basis projection (80 mels, fmin=55, fmax=7600)
+            mel_basis = librosa.filters.mel(sr=16000, n_fft=800, n_mels=80, fmin=55, fmax=7600)
+            S = np.dot(mel_basis, np.abs(D))
+
+            # 4. Amplitude to Decibels with min_level_db=-100 and ref_level_db=20
+            min_level = np.exp(-100.0 / 20.0 * np.log(10))
+            S_db = 20.0 * np.log10(np.maximum(min_level, S)) - 20.0
+
+            # 5. Symmetric normalization to [-4.0, +4.0] matching training distribution
+            mel_norm = np.clip(8.0 * ((S_db - (-100.0)) / 100.0) - 4.0, -4.0, 4.0)
 
             mel_step_size = 16
             mel_idx_mult = 80.0 / fps
@@ -103,8 +106,8 @@ class Wav2LipService:
         head_motion: int = 5
     ):
         """
-        Generates HeyGen-quality photorealistic Talking Avatar video using Wav2Lip neural network.
-        Synthesizes exact phoneme mouth shapes, real teeth, and tongue movements.
+        Generates HeyGen-quality Talking Avatar video using calibrated Wav2Lip-256 neural network.
+        Synthesizes exact phoneme mouth shapes, real teeth, tongue, and natural lip opening.
         """
         session = cls.get_session()
         if session is None:
@@ -113,7 +116,7 @@ class Wav2LipService:
         timestamp = int(time.time() * 1000)
         fps = 25
 
-        # 1. Prepare Audio & Mel Chunks
+        # 1. Prepare Audio & Mel Chunks with calibrated scale
         mel_chunks, duration = cls.extract_mel_chunks(audio_path, fps=fps)
         total_frames = len(mel_chunks)
         if total_frames == 0:
@@ -152,11 +155,11 @@ class Wav2LipService:
             fx = (target_w - fw) // 2
             fy = int(target_h * 0.28)
 
-        # Expand face region slightly to capture chin and jaw cleanly
-        x1 = max(0, fx - int(0.06 * fw))
-        x2 = min(target_w, fx + fw + int(0.06 * fw))
-        y1 = max(0, fy - int(0.04 * fh))
-        y2 = min(target_h, fy + fh + int(0.14 * fh))
+        # Precise face boundaries: from eyebrows/eyes to chin, avoiding collar/shirt cut
+        x1 = max(0, fx)
+        x2 = min(target_w, fx + fw)
+        y1 = max(0, fy)
+        y2 = min(target_h, fy + fh - int(0.02 * fh))
         crop_w = x2 - x1
         crop_h = y2 - y1
 
@@ -166,27 +169,31 @@ class Wav2LipService:
         # 4. Prepare Wav2Lip Face Input Tensor (Shape: 1, 6, 256, 256)
         face_norm = face_256.astype(np.float32) / 255.0
         masked_face = face_norm.copy()
-        # Lower half masked to let Wav2Lip synthesize phoneme mouth motion
+        # Lower half (mouth region) masked to let Wav2Lip synthesize phoneme mouth motion
         masked_face[128:, :] = 0.0
 
         inp_face = np.concatenate([masked_face, face_norm], axis=2).transpose(2, 0, 1)
         inp_face = np.expand_dims(inp_face, 0).astype(np.float32)
 
-        # 5. Create Soft Feather Blend Mask (No rectangular seams!)
-        # The mask transitions smoothly from 0 (top/eyes/nose) to 1 (lips/chin)
-        blend_mask_256 = np.zeros((256, 256), dtype=np.float32)
-        # Start smooth fade at y=115 (~middle of face under nose)
-        for row in range(110, 256):
-            blend_mask_256[row, :] = min(1.0, (row - 110) / 28.0)
-        
-        # Round the sides for seamless oval cheek blend
-        col_dist = np.abs(np.arange(256) - 128) / 128.0
-        col_fade = np.clip((1.0 - col_dist) / 0.18, 0.0, 1.0)
-        blend_mask_256 *= np.expand_dims(col_fade, 0)
-        blend_mask_256 = cv2.GaussianBlur(blend_mask_256, (21, 21), 7)
-        
-        blend_mask = cv2.resize(blend_mask_256, (crop_w, crop_h), interpolation=cv2.INTER_LINEAR)
-        blend_mask = np.expand_dims(blend_mask, -1)
+        # 5. Create 3-Sided Feather Blend Mask (Seamless cheek, mustache & chin integration)
+        mask = np.zeros((crop_h, crop_w), dtype=np.float32)
+        r_start = int(0.48 * crop_h)
+        r_end = int(0.60 * crop_h)
+        for r in range(r_start, crop_h):
+            mask[r, :] = min(1.0, (r - r_start) / max(1, (r_end - r_start)))
+
+        # Soft bottom fade at chin (no shirt/neck line)
+        r_bottom = int(0.88 * crop_h)
+        for r in range(r_bottom, crop_h):
+            mask[r, :] *= max(0.0, (crop_h - r) / max(1, crop_h - r_bottom))
+
+        # Soft lateral cheek fade
+        c_mid = crop_w / 2.0
+        c_dist = np.abs(np.arange(crop_w) - c_mid) / c_mid
+        c_fade = np.clip((1.0 - c_dist) / 0.15, 0.0, 1.0)
+        mask *= np.expand_dims(c_fade, 0)
+        mask = cv2.GaussianBlur(mask, (25, 25), 9)
+        mask = np.expand_dims(mask, -1)
 
         # 6. Stream Frames to FFmpeg Pipe
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -208,7 +215,6 @@ class Wav2LipService:
         ]
         proc = subprocess.Popen(writer_cmd, stdin=subprocess.PIPE)
 
-        # Process frames (Batch size = 1 as required by Wav2Lip-256 ONNX model)
         for frame_idx in range(total_frames):
             t = frame_idx / fps
 
@@ -221,7 +227,7 @@ class Wav2LipService:
                 "video_frames": inp_face
             })[0][0]
 
-            # Convert predicted face to uint8 BGR (pred shape: 3, 256, 256)
+            # Convert predicted face to uint8 BGR
             pred_face = pred.transpose(1, 2, 0) * 255.0
             pred_face = np.clip(pred_face, 0, 255).astype(np.uint8)
             pred_face_resized = cv2.resize(pred_face, (crop_w, crop_h), interpolation=cv2.INTER_LANCZOS4)
@@ -229,7 +235,7 @@ class Wav2LipService:
             # Seamless blend into base frame
             frame = base_cv.copy()
             curr_crop = frame[y1:y2, x1:x2].astype(np.float32)
-            blended = (1.0 - blend_mask) * curr_crop + blend_mask * pred_face_resized.astype(np.float32)
+            blended = (1.0 - mask) * curr_crop + mask * pred_face_resized.astype(np.float32)
             frame[y1:y2, x1:x2] = blended.clip(0, 255).astype(np.uint8)
 
             # Organic head movement (subtle micro-sway and breathing)
