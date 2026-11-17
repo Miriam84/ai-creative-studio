@@ -33,6 +33,25 @@ export default function AvatarStudio({ hardwareInfo }) {
   const [addSubtitles, setAddSubtitles] = useState(true);
   const [subtitleText, setSubtitleText] = useState("SABIES D'ON VE AQUESTA FRASE?");
 
+  // Custom Avatar Image Upload directly on selected character
+  const [customAvatarFile, setCustomAvatarFile] = useState(null);
+  const [customAvatarPreview, setCustomAvatarPreview] = useState(null);
+
+  const handleDirectImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCustomAvatarFile(file);
+      const url = URL.createObjectURL(file);
+      setCustomAvatarPreview(url);
+      if (selectedCharacter) {
+        setSelectedCharacter({
+          ...selectedCharacter,
+          avatar_image: url
+        });
+      }
+    }
+  };
+
   // Processing & Output Video
   const [isRendering, setIsRendering] = useState(false);
   const [renderProgress, setRenderProgress] = useState(0);
@@ -55,12 +74,13 @@ export default function AvatarStudio({ hardwareInfo }) {
       .catch(() => {
         // Fallback default
         const defaultChar = {
-          id: 'char_agustin',
-          name: 'Agustín (Divulgador de Frases)',
-          description: "Avi savi i carismàtic que explica l'origen de dites i refranys populars amb to proper i humor.",
-          avatar_image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80',
-          voice_name: 'Enric (Català)',
-          voice_id: 'ca_enric'
+          id: 'char_lhome_del_bigot',
+          name: "L'home del bigot (Rai)",
+          description: "Personatge savi i carismàtic amb ulleres i bigoti que explica curiositats, dites i refranys populars a TikTok i YouTube.",
+          avatar_image: 'http://localhost:8000/static/outputs/lhome_del_bigot.jpg',
+          voice_name: "Veu de l'home del bigot (Mostra real)",
+          voice_id: 'ca_enric',
+          audio_sample: 'http://localhost:8000/static/outputs/lhome_del_bigot_veu.mp3'
         };
         setCharacters([defaultChar]);
         setSelectedCharacter(defaultChar);
@@ -165,7 +185,11 @@ export default function AvatarStudio({ hardwareInfo }) {
 
     try {
       const formData = new FormData();
-      formData.append('image_url', selectedCharacter.avatar_image);
+      if (customAvatarFile) {
+        formData.append('image', customAvatarFile);
+      } else {
+        formData.append('image_url', selectedCharacter.avatar_image);
+      }
       formData.append('head_motion', headMotion);
       formData.append('eye_blink', eyeBlink);
       formData.append('add_subtitles', addSubtitles);
@@ -281,6 +305,40 @@ export default function AvatarStudio({ hardwareInfo }) {
                 );
               })}
             </div>
+
+            {/* Active Character Quick Info & Image Uploader */}
+            {selectedCharacter && (
+              <div className="mt-4 pt-4 border-t border-studio-cardBorder flex flex-col sm:flex-row items-center justify-between gap-4 bg-studio-bg/60 p-3.5 rounded-xl border border-cyan-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="relative group">
+                    <img
+                      src={selectedCharacter.avatar_image}
+                      alt={selectedCharacter.name}
+                      className="w-16 h-16 rounded-xl object-cover border-2 border-cyan-500 shadow-md"
+                    />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl cursor-pointer transition text-[9px] font-bold text-white text-center p-1">
+                      Canviar foto
+                      <input type="file" accept="image/*" onChange={handleDirectImageChange} className="hidden" />
+                    </label>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block">{selectedCharacter.name}</span>
+                    <span className="text-[11px] text-cyan-300">Rostre carregat i preparat per a Lip-Sync</span>
+                    {selectedCharacter.audio_sample && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <audio src={selectedCharacter.audio_sample} controls className="h-6 w-44" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-studio-card border border-cyan-500/40 hover:border-cyan-400 text-xs font-semibold text-cyan-300 hover:text-white cursor-pointer transition shadow-md">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>📷 Canviar / Pujar Foto</span>
+                  <input type="file" accept="image/*" onChange={handleDirectImageChange} className="hidden" />
+                </label>
+              </div>
+            )}
           </div>
 
           {/* FASE 2: Circuit de Generació del Vídeo (Opció A vs Opció B) */}
