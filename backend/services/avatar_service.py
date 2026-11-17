@@ -259,6 +259,7 @@ class AvatarService:
             "-i", temp_audio_path,
             "-c:v", "copy",
             "-c:a", "aac",
+            "-movflags", "+faststart",
             "-shortest",
             output_video_path
         ]

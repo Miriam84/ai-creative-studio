@@ -1,6 +1,7 @@
 import os
 import time
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -272,6 +273,23 @@ async def render_avatar(
         eye_blink=eye_blink,
         add_subtitles=add_subtitles,
         subtitle_text=sub_text
+    )
+
+@app.get("/api/download/{filename}")
+def download_file(filename: str):
+    """Secure direct download endpoint with Content-Disposition attachment."""
+    safe_name = os.path.basename(filename)
+    file_path = os.path.join(OUTPUTS_DIR, safe_name)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Fitxer no trobat")
+    return FileResponse(
+        path=file_path,
+        media_type="video/mp4" if safe_name.endswith(".mp4") else "application/octet-stream",
+        filename=safe_name,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}"',
+            "Cache-Control": "no-cache"
+        }
     )
 
 if __name__ == "__main__":

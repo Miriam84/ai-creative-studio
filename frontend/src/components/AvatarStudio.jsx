@@ -526,9 +526,9 @@ export default function AvatarStudio({ hardwareInfo }) {
               <video
                 key={outputVideoUrl}
                 src={outputVideoUrl}
-                autoPlay
-                loop
                 controls
+                playsInline
+                preload="auto"
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -561,14 +561,21 @@ export default function AvatarStudio({ hardwareInfo }) {
           </div>
 
           {outputVideoUrl && (
-            <a
-              href={outputVideoUrl}
-              download={outputVideoUrl.split('/').pop()}
-              className="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-bold text-white transition shadow-lg shadow-cyan-500/25"
-            >
-              <Download className="w-4 h-4" />
-              <span>Descarregar Vídeo MP4 per a TikTok / YouTube</span>
-            </a>
+            <div className="mt-4 flex flex-col gap-2 w-full max-w-[320px]">
+              <a
+                href={`/api/download/${outputVideoUrl.split('/').pop()}`}
+                download={outputVideoUrl.split('/').pop()}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-bold text-white transition shadow-lg shadow-cyan-500/25 cursor-pointer text-center"
+              >
+                <Download className="w-4 h-4" />
+                <span>Descarregar Vídeo MP4 (Directe)</span>
+              </a>
+              <p className="text-[10px] text-slate-400 text-center">
+                Format 9:16 (720x1280) llest per publicar a TikTok / Reels / Shorts
+              </p>
+            </div>
           )}
         </div>
       </div>
