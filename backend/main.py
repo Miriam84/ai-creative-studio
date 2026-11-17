@@ -1,4 +1,5 @@
 import os
+import time
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -134,17 +135,108 @@ def generate_sfx(req: ElevenLabsSFXRequest):
         api_key=req.api_key
     )
 
+import json
+
+CHARACTERS_FILE = os.path.join(os.path.dirname(__file__), "characters.json")
+
+def load_characters():
+    if os.path.exists(CHARACTERS_FILE):
+        try:
+            with open(CHARACTERS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_characters(chars):
+    with open(CHARACTERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(chars, f, indent=2, ensure_ascii=False)
+
+@app.get("/api/characters")
+def get_characters():
+    return load_characters()
+
+@app.post("/api/characters")
+async def create_character(
+    name: str = Form(...),
+    description: str = Form(""),
+    voice_name: str = Form("Enric (Català)"),
+    voice_id: str = Form("ca_enric"),
+    image: Optional[UploadFile] = File(None)
+):
+    chars = load_characters()
+    timestamp = int(time.time())
+    
+    avatar_image = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80"
+    if image:
+        img_bytes = await image.read()
+        filename = f"avatar_char_{timestamp}.png"
+        img_path = os.path.join(OUTPUTS_DIR, filename)
+        with open(img_path, "wb") as f:
+            f.write(img_bytes)
+        avatar_image = f"http://localhost:8000/static/outputs/{filename}"
+        
+    new_char = {
+        "id": f"char_{timestamp}",
+        "name": name,
+        "description": description,
+        "avatar_image": avatar_image,
+        "voice_name": voice_name,
+        "voice_id": voice_id,
+        "created_at": timestamp
+    }
+    chars.append(new_char)
+    save_characters(chars)
+    return {"status": "success", "character": new_char}
+
 @app.post("/api/avatar/render")
 async def render_avatar(
-    image: UploadFile = File(...),
+    image: Optional[UploadFile] = File(None),
+    image_url: Optional[str] = Form(None),
     audio: Optional[UploadFile] = File(None),
+    script_text: Optional[str] = Form(None),
+    voice_id: Optional[str] = Form("ca_enric"),
     head_motion: int = Form(5),
     eye_blink: int = Form(7),
     add_subtitles: bool = Form(True),
-    subtitle_text: str = Form("SABIES D'ON VE AQUESTA FRASE?")
+    subtitle_text: Optional[str] = Form(None)
 ):
-    image_bytes = await image.read()
-    audio_bytes = await audio.read() if audio else None
+    # 1. Get image bytes
+    if image:
+        image_bytes = await image.read()
+    elif image_url:
+        import urllib.request
+        image_bytes = urllib.request.urlopen(image_url).read()
+    else:
+        # Default avatar
+        sample_path = os.path.join(OUTPUTS_DIR, "avatar_sample.png")
+        if os.path.exists(sample_path):
+            with open(sample_path, "rb") as f:
+                image_bytes = f.read()
+        else:
+            raise HTTPException(status_code=400, detail="Imatge no proporcionada")
+
+    # 2. Get or generate audio
+    audio_bytes = None
+    if audio:
+        # OP Lev A: User uploaded or recorded exact audio -> DO NOT EDIT, USE AS-IS!
+        audio_bytes = await audio.read()
+    elif script_text:
+        # OPTION B: User provided script text -> Synthesize with character's voice!
+        tts_res = ElevenLabsService.generate_tts(
+            text=script_text,
+            voice_id=voice_id or "ca_enric",
+            provider="free_neural"
+        )
+        audio_url = tts_res.get("audio_url", "")
+        if audio_url.startswith("http://localhost:8000/static/outputs/"):
+            audio_filename = audio_url.split("/")[-1]
+            local_audio_path = os.path.join(OUTPUTS_DIR, audio_filename)
+            if os.path.exists(local_audio_path):
+                with open(local_audio_path, "rb") as f:
+                    audio_bytes = f.read()
+
+    sub_text = subtitle_text if subtitle_text else (script_text[:40] if script_text else "SABIES D'ON VE AQUESTA FRASE?")
     
     return AvatarService.render_talking_avatar(
         image_bytes=image_bytes,
@@ -152,7 +244,7 @@ async def render_avatar(
         head_motion=head_motion,
         eye_blink=eye_blink,
         add_subtitles=add_subtitles,
-        subtitle_text=subtitle_text
+        subtitle_text=sub_text
     )
 
 if __name__ == "__main__":

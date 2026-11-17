@@ -1,0 +1,11 @@
+[
+  {
+    "id": "char_agustin",
+    "name": "Agustín (Divulgador de Frases)",
+    "description": "Avi savi i carismàtic que explica l'origen de dites i refranys populars amb to proper i humor.",
+    "avatar_image": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=800&q=80",
+    "voice_name": "Enric (Català)",
+    "voice_id": "ca_enric",
+    "created_at": 1794944500
+  }
+]
