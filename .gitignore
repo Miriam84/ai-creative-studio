@@ -13,6 +13,8 @@ env/
 .pytest_cache/
 static/outputs/*
 !static/outputs/.gitkeep
+backend/models/*.onnx
+backend/models/*.pth
 
 # IDE & OS
 .DS_Store

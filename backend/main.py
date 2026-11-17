@@ -12,6 +12,7 @@ from services.magnific_service import MagnificService
 from services.higgsfield_service import HiggsfieldService
 from services.elevenlabs_service import ElevenLabsService
 from services.avatar_service import AvatarService
+from services.wav2lip_service import Wav2LipService
 
 app = FastAPI(
     title="OmniStudio API",
@@ -200,7 +201,8 @@ async def render_avatar(
     head_motion: int = Form(5),
     eye_blink: int = Form(7),
     add_subtitles: bool = Form(True),
-    subtitle_text: Optional[str] = Form(None)
+    subtitle_text: Optional[str] = Form(None),
+    engine: Optional[str] = Form("neural")
 ):
     # 1. Get image bytes safely without network self-deadlock
     image_bytes = None
@@ -266,6 +268,21 @@ async def render_avatar(
 
     sub_text = subtitle_text if subtitle_text else (script_text[:40] if script_text else "L'HOME DEL BIGOT A TIKTOK")
     
+    if engine == "neural":
+        try:
+            temp_audio_file = os.path.join(OUTPUTS_DIR, f"audio_input_{int(time.time() * 1000)}.mp3")
+            with open(temp_audio_file, "wb") as f:
+                f.write(audio_bytes)
+            return Wav2LipService.render(
+                image_bytes=image_bytes,
+                audio_path=temp_audio_file,
+                add_subtitles=add_subtitles,
+                subtitle_text=sub_text,
+                head_motion=head_motion
+            )
+        except Exception as e:
+            print("Wav2Lip error, falling back to smooth continuous engine:", e)
+
     return AvatarService.render_talking_avatar(
         image_bytes=image_bytes,
         audio_bytes=audio_bytes,

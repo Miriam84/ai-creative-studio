@@ -57,6 +57,7 @@ export default function AvatarStudio({ hardwareInfo }) {
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderStatus, setRenderStatus] = useState('');
   const [outputVideoUrl, setOutputVideoUrl] = useState(null);
+  const [aiEngine, setAiEngine] = useState('neural'); // 'neural' (Wav2Lip) or 'fast' (Organic Mesh)
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -194,6 +195,7 @@ export default function AvatarStudio({ hardwareInfo }) {
       formData.append('eye_blink', eyeBlink);
       formData.append('add_subtitles', addSubtitles);
       formData.append('subtitle_text', subtitleText);
+      formData.append('engine', aiEngine);
 
       if (generationMode === 'audio') {
         if (!uploadedAudioFile) {
@@ -203,7 +205,7 @@ export default function AvatarStudio({ hardwareInfo }) {
         }
         formData.append('audio', uploadedAudioFile);
         setRenderProgress(35);
-        setRenderStatus('Analitzant fonemes i amplitud del teu àudio sense editar-lo...');
+        setRenderStatus(aiEngine === 'neural' ? 'Analitzant espectrograma mel per a xarxa neuronal...' : 'Analitzant fonemes i amplitud...');
       } else {
         // Script Mode (Option B)
         formData.append('script_text', scriptText);
@@ -213,7 +215,11 @@ export default function AvatarStudio({ hardwareInfo }) {
       }
 
       setRenderProgress(60);
-      setRenderStatus('Generant moviment de boca (Lip-Sync real) i parpelleig...');
+      setRenderStatus(
+        aiEngine === 'neural'
+          ? 'Xarxa Neuronal Wav2Lip sintetitzant moviment bucal i dents reals...'
+          : 'Generant moviment de boca (Malla contínua)...'
+      );
 
       const response = await fetch('/api/avatar/render', {
         method: 'POST',
@@ -489,8 +495,31 @@ export default function AvatarStudio({ hardwareInfo }) {
               </label>
 
               <div className="p-2.5 rounded-lg bg-studio-bg border border-studio-cardBorder flex items-center justify-between text-xs">
-                <span className="text-slate-400">Moviment facial:</span>
-                <span className="font-bold text-cyan-300">Lip-Sync Dinàmic</span>
+                <span className="text-slate-400">Motor IA Facial:</span>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAiEngine('neural')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                      aiEngine === 'neural'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 bg-studio-card hover:text-white'
+                    }`}
+                  >
+                    <span>🧠 Wav2Lip AI (HeyGen)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiEngine('fast')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                      aiEngine === 'fast'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 bg-studio-card hover:text-white'
+                    }`}
+                  >
+                    <span>⚡ Malla (~2s)</span>
+                  </button>
+                </div>
               </div>
             </div>
 
