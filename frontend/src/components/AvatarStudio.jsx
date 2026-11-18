@@ -58,11 +58,12 @@ export default function AvatarStudio({ hardwareInfo }) {
   const [renderStatus, setRenderStatus] = useState('');
   const [outputVideoUrl, setOutputVideoUrl] = useState(null);
   const [aiEngine, setAiEngine] = useState('neural'); // 'neural' (Wav2Lip) or 'fast' (Organic Mesh)
+  const [availableVoices, setAvailableVoices] = useState([]);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // Fetch saved characters on mount
+  // Fetch saved characters and voices on mount
   useEffect(() => {
     fetch('/api/characters')
       .then((res) => res.json())
@@ -73,19 +74,25 @@ export default function AvatarStudio({ hardwareInfo }) {
         }
       })
       .catch(() => {
-        // Fallback default
         const defaultChar = {
           id: 'char_lhome_del_bigot',
           name: "L'home del bigot (Rai)",
           description: "Personatge savi i carismàtic amb ulleres i bigoti que explica curiositats, dites i refranys populars a TikTok i YouTube.",
           avatar_image: '/static/outputs/lhome_del_bigot.jpg',
           voice_name: "Veu de l'home del bigot (Mostra real)",
-          voice_id: 'ca_enric',
+          voice_id: 'voice_rai',
           audio_sample: '/static/outputs/lhome_del_bigot_veu.mp3'
         };
         setCharacters([defaultChar]);
         setSelectedCharacter(defaultChar);
       });
+
+    fetch('/api/voices')
+      .then((res) => res.json())
+      .then((vData) => {
+        if (vData && vData.length > 0) setAvailableVoices(vData);
+      })
+      .catch(() => {});
   }, []);
 
   // Handle Create Character
@@ -465,11 +472,30 @@ export default function AvatarStudio({ hardwareInfo }) {
             {/* Content for Option B: Script Text */}
             {generationMode === 'script' && (
               <div className="p-4 rounded-xl bg-studio-bg/60 border border-studio-cardBorder flex flex-col gap-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-slate-300">Guió a interpretar:</span>
-                  <span className="text-[10px] font-mono text-purple-300">
-                    Veu: {selectedCharacter?.voice_name || 'Enric (Català)'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400">Veu:</span>
+                    <select
+                      value={selectedCharacter?.voice_id || 'voice_rai'}
+                      onChange={(e) => {
+                        const vId = e.target.value;
+                        const vObj = availableVoices.find((v) => v.id === vId);
+                        setSelectedCharacter({
+                          ...selectedCharacter,
+                          voice_id: vId,
+                          voice_name: vObj ? vObj.name : 'Veu'
+                        });
+                      }}
+                      className="bg-studio-card border border-purple-500/40 rounded-lg px-2.5 py-1 text-xs text-purple-300 font-semibold focus:outline-none"
+                    >
+                      {availableVoices.map((v) => (
+                        <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                          {v.is_cloned ? '🌟 ' : ''}{v.name} ({v.accent})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <textarea
                   rows={3}

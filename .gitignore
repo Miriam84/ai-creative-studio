@@ -11,8 +11,10 @@ __pycache__/
 venv/
 env/
 .pytest_cache/
-static/outputs/*
-!static/outputs/.gitkeep
+backend/static/outputs/*
+!backend/static/outputs/.gitkeep
+!backend/static/outputs/lhome_del_bigot.jpg
+!backend/static/outputs/lhome_del_bigot_veu.mp3
 backend/models/*.onnx
 backend/models/*.pth
 

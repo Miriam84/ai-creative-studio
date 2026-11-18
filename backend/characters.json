@@ -5,7 +5,7 @@
     "description": "Personatge savi i carismàtic amb ulleres i bigoti que explica curiositats, dites i refranys populars a TikTok i YouTube.",
     "avatar_image": "/static/outputs/lhome_del_bigot.jpg",
     "voice_name": "Veu de l'home del bigot (Mostra real)",
-    "voice_id": "ca_enric",
+    "voice_id": "voice_rai",
     "audio_sample": "/static/outputs/lhome_del_bigot_veu.mp3",
     "created_at": 1794945300
   }

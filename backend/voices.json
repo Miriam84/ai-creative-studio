@@ -1,0 +1,69 @@
+[
+  {
+    "id": "voice_rai",
+    "name": "L'home del bigot (Rai)",
+    "tag": "Veu Clonada d'en Rai • Màxima Fidelitat",
+    "accent": "Català (Autèntic)",
+    "desc": "Clonada directament de l'àudio de WhatsApp d'en Rai. To càlid, savi i proper.",
+    "is_cloned": true,
+    "reference_audio": "static/outputs/lhome_del_bigot_veu.mp3",
+    "reference_text": "Sabies d'on ve aquesta frase? El qui matina fa farina.",
+    "pitch_shift": "-4Hz",
+    "rate": "-2%",
+    "base_voice": "ca-ES-EnricNeural"
+  },
+  {
+    "id": "ca_enric",
+    "name": "Enric",
+    "tag": "Home • Natural & Fluid",
+    "accent": "Català",
+    "desc": "Veu neuronal estàndard en català perfecta per a contingut i anuncis.",
+    "is_cloned": false,
+    "base_voice": "ca-ES-EnricNeural"
+  },
+  {
+    "id": "ca_joana",
+    "name": "Joana",
+    "tag": "Dona • Expressiva & Clara",
+    "accent": "Català",
+    "desc": "Veu femenina d'estudi en català amb dicció impecable.",
+    "is_cloned": false,
+    "base_voice": "ca-ES-JoanaNeural"
+  },
+  {
+    "id": "es_alvaro",
+    "name": "Álvaro",
+    "tag": "Home • Càlid & Dinàmic",
+    "accent": "Espanyol",
+    "desc": "Veu molt propera per a xarxes socials i TikTok.",
+    "is_cloned": false,
+    "base_voice": "es-ES-AlvaroNeural"
+  },
+  {
+    "id": "es_elvira",
+    "name": "Elvira",
+    "tag": "Dona • Professional",
+    "accent": "Espanyol",
+    "desc": "To informatiu i corporatiu per a vídeos educatius.",
+    "is_cloned": false,
+    "base_voice": "es-ES-ElviraNeural"
+  },
+  {
+    "id": "en_adam",
+    "name": "Adam",
+    "tag": "Home • Profund & Cinema",
+    "accent": "Anglès",
+    "desc": "To profund estil tràiler de Hollywood.",
+    "is_cloned": false,
+    "base_voice": "en-US-ChristopherNeural"
+  },
+  {
+    "id": "en_rachel",
+    "name": "Rachel",
+    "tag": "Dona • Calma & Narrativa",
+    "accent": "Anglès",
+    "desc": "Ideal per a narracions i meditació.",
+    "is_cloned": false,
+    "base_voice": "en-US-JennyNeural"
+  }
+]

@@ -13,6 +13,7 @@ from services.higgsfield_service import HiggsfieldService
 from services.elevenlabs_service import ElevenLabsService
 from services.avatar_service import AvatarService
 from services.wav2lip_service import Wav2LipService
+from services.voice_clone_service import VoiceCloneService
 
 app = FastAPI(
     title="OmniStudio API",
@@ -137,6 +138,35 @@ def generate_sfx(req: ElevenLabsSFXRequest):
         api_key=req.api_key
     )
 
+@app.get("/api/voices")
+def get_all_voices():
+    return VoiceCloneService.get_all_voices()
+
+@app.post("/api/elevenlabs/clone")
+async def clone_voice(
+    voice_name: str = Form(...),
+    reference_text: Optional[str] = Form(None),
+    lang: str = Form("ca"),
+    audio_file: UploadFile = File(...)
+):
+    temp_path = os.path.join(OUTPUTS_DIR, f"temp_upload_{int(time.time())}_{audio_file.filename}")
+    with open(temp_path, "wb") as f:
+        f.write(await audio_file.read())
+    try:
+        new_voice = VoiceCloneService.clone_voice(
+            voice_name=voice_name,
+            audio_file_path=temp_path,
+            reference_text=reference_text,
+            lang=lang
+        )
+        return {"status": "success", "voice": new_voice}
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
 import json
 
 CHARACTERS_FILE = os.path.join(os.path.dirname(__file__), "characters.json")
@@ -248,8 +278,8 @@ async def render_avatar(
         # OPTION B: User provided text -> Synthesize speech with character voice
         tts_res = ElevenLabsService.generate_tts(
             text=script_text,
-            voice_id=voice_id or "ca_enric",
-            provider="free_neural"
+            voice_id=voice_id or "voice_rai",
+            provider="clone"
         )
         audio_url = tts_res.get("audio_url", "")
         if "static/outputs/" in audio_url:
