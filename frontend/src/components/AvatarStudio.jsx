@@ -104,7 +104,9 @@ export default function AvatarStudio({ hardwareInfo }) {
     formData.append('name', newCharName);
     formData.append('description', newCharDesc);
     formData.append('voice_id', newCharVoice);
-    formData.append('voice_name', newCharVoice === 'ca_enric' ? 'Enric (Català)' : 'Joana (Català)');
+    const matchedVoice = availableVoices.find((v) => v.id === newCharVoice);
+    const resolvedVoiceName = matchedVoice ? matchedVoice.name : (newCharVoice === 'ca_enric' ? 'Enric (Català)' : 'Joana (Català)');
+    formData.append('voice_name', resolvedVoiceName);
     if (newCharImageFile) {
       formData.append('image', newCharImageFile);
     }

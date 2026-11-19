@@ -18,6 +18,7 @@ const DEMO_IMAGES = [
 
 export default function MagnificStudio({ onSendToHiggsfield, hardwareInfo }) {
   const [selectedImage, setSelectedImage] = useState(DEMO_IMAGES[0].before);
+  const [uploadedBase64, setUploadedBase64] = useState(null);
   const [enhancedImage, setEnhancedImage] = useState(DEMO_IMAGES[0].after);
   const [scale, setScale] = useState(4);
   const [creativity, setCreativity] = useState(55);
@@ -32,9 +33,14 @@ export default function MagnificStudio({ onSendToHiggsfield, hardwareInfo }) {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setSelectedImage(url);
-      setEnhancedImage(url); // initially same
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        setUploadedBase64(dataUrl);
+        setSelectedImage(dataUrl);
+        setEnhancedImage(dataUrl);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -49,7 +55,8 @@ export default function MagnificStudio({ onSendToHiggsfield, hardwareInfo }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image_url: selectedImage,
+          image_url: uploadedBase64 ? null : selectedImage,
+          image_base64: uploadedBase64 || null,
           scale_factor: scale,
           creativity: creativity / 100,
           resemblance: resemblance / 100,
@@ -116,7 +123,7 @@ export default function MagnificStudio({ onSendToHiggsfield, hardwareInfo }) {
           {DEMO_IMAGES.map((demo, idx) => (
             <button
               key={idx}
-              onClick={() => { setSelectedImage(demo.before); setEnhancedImage(demo.after); }}
+              onClick={() => { setUploadedBase64(null); setSelectedImage(demo.before); setEnhancedImage(demo.after); }}
               className="px-2.5 py-1.5 rounded-md bg-studio-card border border-studio-cardBorder hover:border-pink-500/50 text-slate-300 hover:text-white transition"
             >
               {demo.name}

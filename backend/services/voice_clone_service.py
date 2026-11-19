@@ -8,6 +8,12 @@ import scipy.signal as signal
 import sys
 import imageio_ffmpeg
 
+try:
+    import static_ffmpeg
+    static_ffmpeg.add_paths()
+except Exception:
+    pass
+
 FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,7 +52,14 @@ def get_f5tts():
     if _f5_tts_instance is None:
         patch_torchaudio()
         from f5_tts.api import F5TTS
-        _f5_tts_instance = F5TTS(device='cpu')
+        try:
+            from huggingface_hub import hf_hub_download
+            vocab_es = hf_hub_download('jpgallegoar/F5-Spanish', 'vocab.txt')
+            ckpt_es = hf_hub_download('jpgallegoar/F5-Spanish', 'model_1250000.safetensors')
+            _f5_tts_instance = F5TTS(model='F5TTS_Base', ckpt_file=ckpt_es, vocab_file=vocab_es, device='cpu')
+        except Exception as e:
+            print("F5-Spanish load fallback to F5TTS_v1_Base:", e)
+            _f5_tts_instance = F5TTS(device='cpu')
     return _f5_tts_instance
 
 # Lazy Whisper transcriber singleton for auto alignment
@@ -109,7 +122,7 @@ class VoiceCloneService:
                     return json.load(f)
             except Exception:
                 pass
-            return []
+        return []
 
     @staticmethod
     def save_voices(voices):
@@ -256,9 +269,9 @@ class VoiceCloneService:
                         if os.path.exists(out_path):
                             return {
                                 "status": "success",
-                                "audio_url": f"http://localhost:8001/static/outputs/{out_filename}",
+                                "audio_url": f"/static/outputs/{out_filename}",
                                 "voice_name": voice_data["name"],
-                                "source": "🧠 F5-TTS Neural Voice Cloning"
+                                "source": "🧠 F5-TTS Spanish/Catalan Neural Voice Cloning"
                             }
                     except Exception as e:
                         print("F5TTS fallback to fast mode:", e)
@@ -326,14 +339,14 @@ class VoiceCloneService:
 
                 return {
                     "status": "success",
-                    "audio_url": f"http://localhost:8001/static/outputs/{out_filename}",
+                    "audio_url": f"/static/outputs/{out_filename}",
                     "voice_name": voice_data["name"],
                     "source": f"⚡ Veu Clonada d'Estudi ({voice_data['name']}) • Timbre i Dicció Autèntics"
                 }
         except Exception as e:
             print("Synthesis error:", e)
 
-        fallback_url = "http://localhost:8001/static/outputs/test_cloned_rai.wav" if os.path.exists(os.path.join(OUTPUT_DIR, "test_cloned_rai.wav")) else "http://localhost:8001/static/outputs/test_catalan.mp3"
+        fallback_url = "/static/outputs/test_cloned_rai.wav" if os.path.exists(os.path.join(OUTPUT_DIR, "test_cloned_rai.wav")) else "/static/outputs/test_catalan.mp3"
         return {
             "status": "success",
             "audio_url": fallback_url,

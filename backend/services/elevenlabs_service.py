@@ -50,7 +50,7 @@ class ElevenLabsService:
                         f.write(res.content)
                     return {
                         "status": "success",
-                        "audio_url": f"http://localhost:8001/static/outputs/{filename}",
+                        "audio_url": f"/static/outputs/{filename}",
                         "voice_name": voice_name,
                         "source": "ElevenLabs Cloud API"
                     }

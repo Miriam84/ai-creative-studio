@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video, Film, Play, Pause, RotateCw, ZoomIn, ZoomOut, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, RefreshCw, Mic, Download, Sparkles, Compass } from 'lucide-react';
 
 const CAMERA_PRESETS = [
@@ -12,8 +12,14 @@ const CAMERA_PRESETS = [
 
 export default function HiggsfieldStudio({ inputImage, onSendToElevenLabs, hardwareInfo }) {
   const [sourceImage, setSourceImage] = useState(
-    inputImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=90'
+    inputImage || '/static/outputs/lhome_del_bigot.jpg'
   );
+
+  useEffect(() => {
+    if (inputImage) {
+      setSourceImage(inputImage);
+    }
+  }, [inputImage]);
   const [activeCamera, setActiveCamera] = useState('zoom_in');
   const [motionSpeed, setMotionSpeed] = useState(6);
   const [cameraShake, setCameraShake] = useState(2);

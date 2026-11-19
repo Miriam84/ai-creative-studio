@@ -226,7 +226,7 @@ async def create_character(
         img_path = os.path.join(OUTPUTS_DIR, filename)
         with open(img_path, "wb") as f:
             f.write(img_bytes)
-        avatar_image = f"http://localhost:8000/static/outputs/{filename}"
+        avatar_image = f"/static/outputs/{filename}"
         
     new_char = {
         "id": f"char_{timestamp}",
@@ -349,9 +349,18 @@ def download_file(filename: str):
     file_path = os.path.join(OUTPUTS_DIR, safe_name)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Fitxer no trobat")
+    ext = os.path.splitext(safe_name)[1].lower()
+    mime_map = {
+        ".mp4": "video/mp4",
+        ".mp3": "audio/mpeg",
+        ".wav": "audio/wav",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg"
+    }
     return FileResponse(
         path=file_path,
-        media_type="video/mp4" if safe_name.endswith(".mp4") else "application/octet-stream",
+        media_type=mime_map.get(ext, "application/octet-stream"),
         filename=safe_name,
         headers={
             "Content-Disposition": f'attachment; filename="{safe_name}"',
