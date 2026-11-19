@@ -1,5 +1,31 @@
 [
   {
+    "id": "clone_la_meva_veu_personal_1795081377",
+    "name": "La Meva Veu Personal",
+    "tag": "Veu Clonada Personalitzada",
+    "accent": "Català (Clonat)",
+    "desc": "Clonada a partir de la mostra sonora de 'La Meva Veu Personal'.",
+    "is_cloned": true,
+    "reference_audio": "static/outputs/voices/clone_la_meva_veu_personal_1795081377.ogg",
+    "reference_text": "hola",
+    "pitch_shift": "-43Hz",
+    "rate": "+0%",
+    "base_voice": "ca-ES-JoanaNeural"
+  },
+  {
+    "id": "clone_miriam_1795081270",
+    "name": "Miriam",
+    "tag": "Veu Clonada Personalitzada",
+    "accent": "Català (Clonat)",
+    "desc": "Clonada a partir de la mostra sonora de 'Miriam'.",
+    "is_cloned": true,
+    "reference_audio": "static/outputs/voices/clone_miriam_1795081270.ogg",
+    "reference_text": "Mostra de veu de Miriam",
+    "pitch_shift": "-43Hz",
+    "rate": "+0%",
+    "base_voice": "ca-ES-JoanaNeural"
+  },
+  {
     "id": "voice_rai",
     "name": "L'home del bigot (Rai)",
     "tag": "Veu Clonada d'en Rai • Màxima Fidelitat",

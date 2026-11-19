@@ -1,5 +1,25 @@
 import os
+import sys
 import time
+
+try:
+    import static_ffmpeg
+    static_ffmpeg.add_paths()
+except Exception:
+    pass
+
+try:
+    import soundfile as sf
+    import torch
+    import torchaudio
+    def _sf_load(filepath, **kwargs):
+        data, sr = sf.read(filepath, dtype='float32')
+        t = torch.from_numpy(data)
+        return (t.unsqueeze(0) if t.ndim == 1 else t.t()), sr
+    torchaudio.load = _sf_load
+except Exception:
+    pass
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
