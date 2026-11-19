@@ -57,7 +57,7 @@ export default function AvatarStudio({ hardwareInfo }) {
   const [renderProgress, setRenderProgress] = useState(0);
   const [renderStatus, setRenderStatus] = useState('');
   const [outputVideoUrl, setOutputVideoUrl] = useState(null);
-  const [aiEngine, setAiEngine] = useState('neural'); // 'neural' (Wav2Lip) or 'fast' (Organic Mesh)
+  const [aiEngine, setAiEngine] = useState('fast'); // 'fast' (Organic Mesh - Natural) or 'neural' (Wav2Lip)
   const [availableVoices, setAvailableVoices] = useState([]);
 
   const mediaRecorderRef = useRef(null);
@@ -525,17 +525,6 @@ export default function AvatarStudio({ hardwareInfo }) {
                 <div className="flex gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setAiEngine('neural')}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
-                      aiEngine === 'neural'
-                        ? 'bg-cyan-600 text-white shadow-sm'
-                        : 'text-slate-400 bg-studio-card hover:text-white'
-                    }`}
-                  >
-                    <span>🧠 Wav2Lip AI (HeyGen)</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setAiEngine('fast')}
                     className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
                       aiEngine === 'fast'
@@ -543,7 +532,18 @@ export default function AvatarStudio({ hardwareInfo }) {
                         : 'text-slate-400 bg-studio-card hover:text-white'
                     }`}
                   >
-                    <span>⚡ Malla (~2s)</span>
+                    <span>⚡ Malla Orgànica (Fluida & Natural)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiEngine('neural')}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+                      aiEngine === 'neural'
+                        ? 'bg-cyan-600 text-white shadow-sm'
+                        : 'text-slate-400 bg-studio-card hover:text-white'
+                    }`}
+                  >
+                    <span>🧠 Wav2Lip Neural</span>
                   </button>
                 </div>
               </div>

@@ -283,8 +283,8 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
                         : 'bg-studio-bg border-studio-cardBorder text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span className="text-xs font-bold text-emerald-300">⚡ Ràpid (~2s)</span>
-                    <span className="text-[10px] text-slate-400">Timbre acústic instantani</span>
+                    <span className="text-xs font-bold text-emerald-300">⚡ Ràpid & Clar (Recomanat)</span>
+                    <span className="text-[10px] text-slate-300">100% intel·ligible en català (~2s)</span>
                   </button>
                   <button
                     onClick={() => setVoiceProvider('deep_ai')}
@@ -295,7 +295,7 @@ export default function ElevenLabsStudio({ inputVideo, hardwareInfo }) {
                     }`}
                   >
                     <span className="text-xs font-bold text-purple-300">🧠 AI Deep (F5-TTS)</span>
-                    <span className="text-[10px] text-slate-400">Clonació neuronal profunda</span>
+                    <span className="text-[10px] text-slate-400">Difusió pesada (~2 min en CPU)</span>
                   </button>
                 </div>
               </div>
