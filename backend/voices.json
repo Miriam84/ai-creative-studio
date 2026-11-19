@@ -4,12 +4,12 @@
     "name": "Miriam",
     "tag": "Veu Clonada Personalitzada",
     "accent": "Català (Clonat)",
-    "desc": "Clonada a partir de la mostra real de WhatsApp de Miriam. Dicció clara en català.",
+    "desc": "Clonada a partir de la mostra real de WhatsApp de Miriam. Dicció nativa i timbre autèntic.",
     "is_cloned": true,
     "reference_audio": "static/outputs/voices/clone_miriam_1795081270.ogg",
     "reference_clip": "static/outputs/voices/clone_miriam_ref_clip.wav",
     "reference_text": "A ver, jo creia un article nou. Sí que pots fer-ho controlant en un x, en l'història,",
-    "pitch_shift": "-43Hz",
+    "pitch_shift": "-28Hz",
     "rate": "+0%",
     "base_voice": "ca-ES-JoanaNeural"
   },
@@ -23,7 +23,7 @@
     "reference_audio": "static/outputs/voices/clone_la_meva_veu_personal_1795081377.ogg",
     "reference_clip": "static/outputs/voices/clone_miriam_ref_clip.wav",
     "reference_text": "A ver, jo creia un article nou. Sí que pots fer-ho controlant en un x, en l'història,",
-    "pitch_shift": "-43Hz",
+    "pitch_shift": "-28Hz",
     "rate": "+0%",
     "base_voice": "ca-ES-JoanaNeural"
   },
